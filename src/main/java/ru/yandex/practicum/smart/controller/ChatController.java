@@ -3,12 +3,10 @@ package ru.yandex.practicum.smart.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.smart.dto.SendMessageRequest;
-import ru.yandex.practicum.smart.dto.SendMessageResponse;
-import ru.yandex.practicum.smart.dto.MessageResponse;
-import ru.yandex.practicum.smart.dto.CreateChatRequest;
-import ru.yandex.practicum.smart.dto.ChatResponse;
+import ru.yandex.practicum.smart.dto.*;
+import ru.yandex.practicum.smart.model.enums.FeatureType;
 import ru.yandex.practicum.smart.service.ChatService;
+import ru.yandex.practicum.smart.service.FeatureService;
 import java.util.List;
 
 @RestController
@@ -17,6 +15,7 @@ import java.util.List;
 public class ChatController {
 
     private final ChatService chatService;
+    private final FeatureService featureService;
 
     @PostMapping
     public ChatResponse createChat(
@@ -38,5 +37,14 @@ public class ChatController {
             @PathVariable("chatId") Long chatId
     ) {
         return chatService.getMessages(chatId);
+    }
+
+
+    @PostMapping("/{chatId}/features/generate")
+    public FeatureResponse generateFeature(
+            @PathVariable Long chatId,
+            @RequestParam FeatureType type
+    ) {
+        return featureService.generate(chatId, type);
     }
 }

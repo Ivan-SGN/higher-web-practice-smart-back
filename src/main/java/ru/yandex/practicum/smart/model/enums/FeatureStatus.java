@@ -1,7 +1,7 @@
 package ru.yandex.practicum.smart.model.enums;
 
 public enum FeatureStatus {
-    CREATED,
+    DRAFT,
     EXECUTED,
     FAILED
 }
