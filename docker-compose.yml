@@ -1,0 +1,10 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: smart-postgres
+    environment:
+      POSTGRES_DB: smart_db
+      POSTGRES_USER: smart_user
+      POSTGRES_PASSWORD: smart_password
+    ports:
+      - "5432:5432"
