@@ -1,10 +1,10 @@
-CREATE TABLE chats (
+CREATE TABLE IF NOT EXISTS chats (
     id BIGSERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL
 );
 
-CREATE TABLE messages (
+CREATE TABLE IF NOT EXISTS messages (
     id BIGSERIAL PRIMARY KEY,
     chat_id BIGINT NOT NULL REFERENCES chats(id),
     role VARCHAR(20) NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE messages (
     created_at TIMESTAMP NOT NULL
 );
 
-CREATE TABLE features (
+CREATE TABLE IF NOT EXISTS features (
     id BIGSERIAL PRIMARY KEY,
     chat_id BIGINT NOT NULL REFERENCES chats(id),
     type VARCHAR(50) NOT NULL,
