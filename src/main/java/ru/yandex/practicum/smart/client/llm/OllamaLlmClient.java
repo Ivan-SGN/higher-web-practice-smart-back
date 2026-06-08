@@ -19,12 +19,15 @@ public class OllamaLlmClient implements LlmClient {
 
     @Override
     public LlmResponse send(List<LlmMessage> messages) {
-        LlmRequest request = new LlmRequest(
-                llmProperties.model(),
-                messages,
-                false
-        );
+        return doSend(new LlmRequest(llmProperties.model(), messages, false, null, false));
+    }
 
+    @Override
+    public LlmResponse sendJson(List<LlmMessage> messages) {
+        return doSend(new LlmRequest(llmProperties.model(), messages, false, "json", false));
+    }
+
+    private LlmResponse doSend(LlmRequest request) {
         return restClient.post()
                 .uri(llmProperties.baseUrl() + "/api/chat")
                 .body(request)

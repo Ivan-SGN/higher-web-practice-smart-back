@@ -4,7 +4,7 @@ import ru.yandex.practicum.smart.model.enums.FeatureType;
 
 import java.util.List;
 
-public record GeneratedSqlFeature(
+public record GeneratedFeature(
         FeatureType type,
         String description,
         String code,

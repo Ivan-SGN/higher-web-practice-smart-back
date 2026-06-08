@@ -8,4 +8,6 @@ import java.util.List;
 public interface LlmClient {
 
     LlmResponse send(List<LlmMessage> messages);
+
+    LlmResponse sendJson(List<LlmMessage> messages);
 }

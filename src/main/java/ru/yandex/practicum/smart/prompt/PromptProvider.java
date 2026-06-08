@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 @Component
 public class PromptProvider {
 
-    @Value("classpath:prompts/sql.txt")
+    @Value("classpath:prompts/sql_feature.txt")
     private Resource sqlPrompt;
 
     public String getPrompt(FeatureType featureType) {

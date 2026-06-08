@@ -12,6 +12,10 @@
     {
       "key": "chatId",
       "value": ""
+    },
+    {
+      "key": "featureId",
+      "value": ""
     }
   ],
   "item": [
@@ -49,12 +53,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/chats",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "chats"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["chats"]
             }
           }
         },
@@ -85,18 +85,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"content\": \"Привет {{$timestamp}}\"\n}"
+              "raw": "{\n  \"content\": \"Create a table users with fields: id (bigserial primary key) and name (varchar 255)\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/chats/{{chatId}}/messages",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "chats",
-                "{{chatId}}",
-                "messages"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["chats", "{{chatId}}", "messages"]
             }
           }
         },
@@ -121,14 +115,8 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/chats/{{chatId}}/messages",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "chats",
-                "{{chatId}}",
-                "messages"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["chats", "{{chatId}}", "messages"]
             }
           }
         },
@@ -150,14 +138,178 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/chats/999999/messages",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "chats",
-                "999999",
-                "messages"
+              "host": ["{{baseUrl}}"],
+              "path": ["chats", "999999", "messages"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Features",
+      "item": [
+        {
+          "name": "Generate SQL Feature",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Feature generated', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test('Status is DRAFT', function () {",
+                  "    pm.expect(response.status).to.eql('DRAFT');",
+                  "});",
+                  "pm.test('Content not empty', function () {",
+                  "    pm.expect(response.content).to.not.be.empty;",
+                  "});",
+                  "pm.collectionVariables.set('featureId', response.id);",
+                  "console.log('Generated SQL:', response.content);",
+                  "console.log('Parameters:', JSON.stringify(response.parameters));",
+                  "console.log('Results:', JSON.stringify(response.results));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/chats/{{chatId}}/features/generate?type=SQL",
+              "host": ["{{baseUrl}}"],
+              "path": ["chats", "{{chatId}}", "features", "generate"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "SQL"
+                }
               ]
+            }
+          }
+        },
+        {
+          "name": "Execute Feature (no params)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Feature executed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test('Status is EXECUTED or FAILED', function () {",
+                  "    pm.expect(['EXECUTED', 'FAILED']).to.include(response.status);",
+                  "});",
+                  "if (response.status === 'FAILED') {",
+                  "    console.error('Execution failed:', response.errorMessage);",
+                  "} else {",
+                  "    console.log('Executed successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/chats/features/{{featureId}}/execute",
+              "host": ["{{baseUrl}}"],
+              "path": ["chats", "features", "{{featureId}}", "execute"]
+            }
+          }
+        },
+        {
+          "name": "Execute Feature (with params)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Feature executed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "if (response.status === 'FAILED') {",
+                  "    console.error('Execution failed:', response.errorMessage);",
+                  "} else {",
+                  "    console.log('Executed successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"name\": \"Alice\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/chats/features/{{featureId}}/execute",
+              "host": ["{{baseUrl}}"],
+              "path": ["chats", "features", "{{featureId}}", "execute"]
+            }
+          }
+        },
+        {
+          "name": "Execute Feature Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 returned', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/chats/features/999999/execute",
+              "host": ["{{baseUrl}}"],
+              "path": ["chats", "features", "999999", "execute"]
+            }
+          }
+        },
+        {
+          "name": "Execute Feature Already Executed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 returned for non-DRAFT feature', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/chats/features/{{featureId}}/execute",
+              "host": ["{{baseUrl}}"],
+              "path": ["chats", "features", "{{featureId}}", "execute"]
             }
           }
         }

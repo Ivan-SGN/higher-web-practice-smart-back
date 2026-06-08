@@ -7,7 +7,9 @@ import ru.yandex.practicum.smart.dto.*;
 import ru.yandex.practicum.smart.model.enums.FeatureType;
 import ru.yandex.practicum.smart.service.ChatService;
 import ru.yandex.practicum.smart.service.FeatureService;
+
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/chats")
@@ -46,5 +48,13 @@ public class ChatController {
             @RequestParam FeatureType type
     ) {
         return featureService.generate(chatId, type);
+    }
+
+    @PostMapping("/features/{featureId}/execute")
+    public FeatureResponse executeFeature(
+            @PathVariable Long featureId,
+            @RequestBody(required = false) Map<String, Object> parameters
+    ) {
+        return featureService.execute(featureId, parameters);
     }
 }
