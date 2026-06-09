@@ -136,6 +136,44 @@ class FeatureServiceTest {
                 .isInstanceOf(NotFoundException.class);
     }
 
+    @Test
+    void retryFeatureHappyPathTest() {
+        Chat chat = createChat();
+        Feature feature = createFeature(chat, FeatureStatus.FAILED);
+        feature.setErrorMessage("table already exists");
+        GeneratedFeature generatedFeature = createGeneratedFeature();
+        when(featureRepository.findById(1L)).thenReturn(Optional.of(feature));
+        when(promptProvider.getPrompt(FeatureType.SQL)).thenReturn("system prompt");
+        when(messageRepository.findAllByChatIdOrderByCreatedAtAsc(1L)).thenReturn(List.of());
+        when(llmClient.sendJson(any())).thenReturn(createLlmResponse());
+        when(featureParser.parse(any())).thenReturn(generatedFeature);
+        when(featureRepository.save(any())).thenReturn(feature);
+        when(featureMapper.toDto(any())).thenReturn(createFeatureResponse(FeatureStatus.DRAFT));
+
+        FeatureResponse result = featureService.retry(1L);
+
+        assertThat(result.status()).isEqualTo(FeatureStatus.DRAFT);
+        verify(featureRepository).save(any());
+    }
+
+    @Test
+    void retryFeatureNotFailedStatusTest() {
+        Feature feature = createFeature(createChat(), FeatureStatus.DRAFT);
+        when(featureRepository.findById(1L)).thenReturn(Optional.of(feature));
+
+        assertThatThrownBy(() -> featureService.retry(1L))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("FAILED");
+    }
+
+    @Test
+    void retryFeatureNotFoundTest() {
+        when(featureRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> featureService.retry(99L))
+                .isInstanceOf(NotFoundException.class);
+    }
+
     private Chat createChat() {
         Chat chat = new Chat();
         chat.setId(1L);

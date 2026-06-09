@@ -50,6 +50,7 @@ public class FeatureService {
         Chat chat = getChatOrThrow(chatId);
 
         if (featureRepository.existsByChatIdAndStatus(chatId, FeatureStatus.DRAFT)) {
+            log.warn("Draft feature already exists chatId={}", chatId);
             throw new ConflictException("Chat already has a feature in DRAFT status");
         }
 
@@ -63,9 +64,37 @@ public class FeatureService {
     }
 
     @Transactional
+    public FeatureResponse retry(Long featureId) {
+        Feature feature = getFeatureOrThrow(featureId);
+        if (feature.getStatus() != FeatureStatus.FAILED) {
+            log.warn("Retry rejected: feature not in FAILED status featureId={} status={}", featureId, feature.getStatus());
+            throw new ValidationException("Only FAILED features can be retried");
+        }
+
+        List<LlmMessage> messages = buildMessages(feature.getChat().getId(), feature.getType());
+        messages.add(new LlmMessage("user",
+                "The previous SQL failed with error: "
+                        + feature.getErrorMessage()
+                        + ". Please fix it and return corrected JSON."));
+
+        LlmResponse response = llmClient.sendJson(messages);
+        GeneratedFeature generatedFeature = featureParser.parse(response.message().content());
+        validateFeatureType(feature.getType(), generatedFeature);
+
+        feature.setContent(generatedFeature.code());
+        feature.setStatus(FeatureStatus.DRAFT);
+        feature.setErrorMessage(null);
+
+        Feature saved = featureRepository.save(feature);
+        log.info("Feature retried featureId={}", featureId);
+        return featureMapper.toDto(saved);
+    }
+
+    @Transactional
     public FeatureResponse execute(Long featureId, Map<String, Object> parameters) {
         Feature feature = getFeatureOrThrow(featureId);
         if (feature.getStatus() != FeatureStatus.DRAFT) {
+            log.warn("Execute rejected: feature not in DRAFT status featureId={} status={}", featureId, feature.getStatus());
             throw new ValidationException("Only DRAFT features can be executed");
         }
         try {
@@ -106,6 +135,7 @@ public class FeatureService {
 
     private void validateFeatureType(FeatureType expectedType, GeneratedFeature generatedFeature) {
         if (expectedType != generatedFeature.type()) {
+            log.warn("Feature type mismatch expected={} actual={}", expectedType, generatedFeature.type());
             throw new ValidationException("Generated feature type mismatch");
         }
     }

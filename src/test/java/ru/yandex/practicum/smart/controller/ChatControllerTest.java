@@ -146,4 +146,22 @@ class ChatControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void retryFeatureNotFoundTest() throws Exception {
+        when(featureService.retry(99L))
+                .thenThrow(new NotFoundException("Feature not found = 99"));
+
+        mockMvc.perform(post("/chats/features/99/retry"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void retryFeatureNotFailedStatusTest() throws Exception {
+        when(featureService.retry(1L))
+                .thenThrow(new ValidationException("Only FAILED features can be retried"));
+
+        mockMvc.perform(post("/chats/features/1/retry"))
+                .andExpect(status().isBadRequest());
+    }
 }

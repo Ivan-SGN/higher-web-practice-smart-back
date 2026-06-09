@@ -52,6 +52,27 @@ class FeatureParserTest {
     }
 
     @Test
+    void parseJsonInUnlabeledMarkdownFenceTest() {
+        String response = "```\n" + validJson() + "\n```";
+
+        GeneratedFeature result = featureParser.parse(response);
+
+        assertThat(result.type()).isEqualTo(FeatureType.SQL);
+        assertThat(result.code()).isEqualTo("CREATE TABLE users (id BIGSERIAL PRIMARY KEY)");
+    }
+
+    @Test
+    void extractJsonPrefersCodeBlockOverBareJsonTest() {
+        String innerJson = validJson().trim();
+        String outerJson = "{\"decoy\": true}";
+        String response = outerJson + "\n```json\n" + innerJson + "\n```";
+
+        String extracted = featureParser.extractJson(response);
+
+        assertThat(extracted).isEqualTo(innerJson);
+    }
+
+    @Test
     void parseNoJsonFoundTest() {
         String response = "I cannot generate SQL for this request.";
 

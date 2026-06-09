@@ -57,4 +57,11 @@ public class ChatController {
     ) {
         return featureService.execute(featureId, parameters);
     }
+
+    @PostMapping("/features/{featureId}/retry")
+    public FeatureResponse retryFeature(
+            @PathVariable Long featureId
+    ) {
+        return featureService.retry(featureId);
+    }
 }
