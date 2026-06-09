@@ -3,6 +3,7 @@ package ru.yandex.practicum.smart.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.smart.client.llm.LlmClient;
 import ru.yandex.practicum.smart.client.llm.dto.LlmResponse;
 import ru.yandex.practicum.smart.dto.ChatResponse;
@@ -33,6 +34,7 @@ public class ChatService {
     private final MessageMapper messageMapper;
     private final MessageRepository messageRepository;
 
+    @Transactional
     public SendMessageResponse sendMessage(Long chatId, SendMessageRequest request) {
         Chat chat = getChatOrThrow(chatId);
         saveMessage(chat, MessageRole.USER, request.content());

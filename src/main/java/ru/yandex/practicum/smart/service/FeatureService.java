@@ -2,13 +2,15 @@ package ru.yandex.practicum.smart.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import org.springframework.dao.DataAccessException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.smart.client.llm.LlmClient;
 import ru.yandex.practicum.smart.client.llm.dto.LlmMessage;
 import ru.yandex.practicum.smart.client.llm.dto.LlmResponse;
 import ru.yandex.practicum.smart.dto.FeatureResponse;
 import ru.yandex.practicum.smart.dto.GeneratedFeature;
+import ru.yandex.practicum.smart.exception.ConflictException;
 import ru.yandex.practicum.smart.exception.NotFoundException;
 import ru.yandex.practicum.smart.exception.ValidationException;
 import ru.yandex.practicum.smart.executor.SqlFeatureExecutor;
@@ -43,8 +45,13 @@ public class FeatureService {
     private final PromptProvider promptProvider;
     private final SqlFeatureExecutor sqlFeatureExecutor;
 
+    @Transactional
     public FeatureResponse generate(Long chatId, FeatureType featureType) {
         Chat chat = getChatOrThrow(chatId);
+
+        if (featureRepository.existsByChatIdAndStatus(chatId, FeatureStatus.DRAFT)) {
+            throw new ConflictException("Chat already has a feature in DRAFT status");
+        }
 
         GeneratedFeature generatedFeature = generateFeature(chatId, featureType);
         Feature feature = featureMapper.toEntity(chat, generatedFeature);
@@ -55,6 +62,7 @@ public class FeatureService {
         return featureMapper.toDto(savedFeature);
     }
 
+    @Transactional
     public FeatureResponse execute(Long featureId, Map<String, Object> parameters) {
         Feature feature = getFeatureOrThrow(featureId);
         if (feature.getStatus() != FeatureStatus.DRAFT) {
