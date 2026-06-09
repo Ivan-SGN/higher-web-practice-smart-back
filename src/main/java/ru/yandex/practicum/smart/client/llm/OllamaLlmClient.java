@@ -1,8 +1,11 @@
 package ru.yandex.practicum.smart.client.llm;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestTemplate;
 import ru.yandex.practicum.smart.client.llm.dto.LlmMessage;
 import ru.yandex.practicum.smart.client.llm.dto.LlmRequest;
 import ru.yandex.practicum.smart.client.llm.dto.LlmResponse;
@@ -15,7 +18,7 @@ import java.util.List;
 public class OllamaLlmClient implements LlmClient {
 
     private final LlmProperties llmProperties;
-    private final RestClient restClient;
+    private final RestTemplate restTemplate;
 
     @Override
     public LlmResponse send(List<LlmMessage> messages) {
@@ -28,11 +31,9 @@ public class OllamaLlmClient implements LlmClient {
     }
 
     private LlmResponse doSend(LlmRequest request) {
-        return restClient.post()
-                .uri(llmProperties.baseUrl() + "/api/chat")
-                .body(request)
-                .retrieve()
-                .body(LlmResponse.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<LlmRequest> entity = new HttpEntity<>(request, headers);
+        return restTemplate.postForObject(llmProperties.baseUrl() + "/api/chat", entity, LlmResponse.class);
     }
 }
-

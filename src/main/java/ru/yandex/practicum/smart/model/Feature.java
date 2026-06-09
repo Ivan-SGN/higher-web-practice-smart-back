@@ -48,6 +48,9 @@ public class Feature {
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
+    @Column(name = "linked_feature_id")
+    private Long linkedFeatureId;
+
     @Column(name = "created_at")
     @CreationTimestamp
     private LocalDateTime createdAt;

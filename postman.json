@@ -5,312 +5,330 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:8080"
-    },
-    {
-      "key": "chatId",
-      "value": ""
-    },
-    {
-      "key": "featureId",
-      "value": ""
-    }
+    {"key": "baseUrl", "value": "http://localhost:8081"},
+    {"key": "chatId", "value": ""},
+    {"key": "featureId", "value": ""},
+    {"key": "sqlSelectFeatureId", "value": ""}
   ],
   "item": [
     {
-      "name": "Chats",
+      "name": "Chats (smoke)",
       "item": [
         {
           "name": "Create Chat",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Chat created', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "const response = pm.response.json();",
-                  "pm.collectionVariables.set('chatId', response.id);"
-                ]
-              }
-            }
-          ],
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('chatId', pm.response.json().id);"
+          ]}}],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Test Chat {{$timestamp}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/chats",
-              "host": ["{{baseUrl}}"],
-              "path": ["chats"]
-            }
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"title\": \"Test {{$timestamp}}\"\n}"},
+            "url": {"raw": "{{baseUrl}}/chats", "host": ["{{baseUrl}}"], "path": ["chats"]}
           }
         },
         {
           "name": "Send Message",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Message sent', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "const response = pm.response.json();",
-                  "pm.expect(response.content).to.not.be.empty;"
-                ]
-              }
-            }
-          ],
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "console.log('LLM:', pm.response.json().content.slice(0,120));"
+          ]}}],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"content\": \"Create a table users with fields: id (bigserial primary key) and name (varchar 255)\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/chats/{{chatId}}/messages",
-              "host": ["{{baseUrl}}"],
-              "path": ["chats", "{{chatId}}", "messages"]
-            }
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"content\": \"Hello!\"\n}"},
+            "url": {"raw": "{{baseUrl}}/chats/{{chatId}}/messages", "host": ["{{baseUrl}}"], "path": ["chats","{{chatId}}","messages"]}
           }
         },
         {
           "name": "Get Messages",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('History loaded', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "const response = pm.response.json();",
-                  "pm.expect(response.length).to.be.greaterThan(0);"
-                ]
-              }
-            }
-          ],
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.test('not empty', () => pm.expect(pm.response.json().length).to.be.greaterThan(0));"
+          ]}}],
           "request": {
             "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/chats/{{chatId}}/messages",
-              "host": ["{{baseUrl}}"],
-              "path": ["chats", "{{chatId}}", "messages"]
-            }
+            "url": {"raw": "{{baseUrl}}/chats/{{chatId}}/messages", "host": ["{{baseUrl}}"], "path": ["chats","{{chatId}}","messages"]}
           }
         },
         {
-          "name": "Get Messages Not Found",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('404 returned', function () {",
-                  "    pm.response.to.have.status(404);",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "Get Messages — 404",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('404', () => pm.response.to.have.status(404));"]}}],
           "request": {
             "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/chats/999999/messages",
-              "host": ["{{baseUrl}}"],
-              "path": ["chats", "999999", "messages"]
-            }
+            "url": {"raw": "{{baseUrl}}/chats/999999/messages", "host": ["{{baseUrl}}"], "path": ["chats","999999","messages"]}
           }
         }
       ]
     },
     {
-      "name": "Features",
+      "name": "Сценарий 1 — SQL (без API)",
+      "description": "Создаём чат → обсуждаем → генерируем SQL-фичу → выполняем. Если упало — retry.",
       "item": [
         {
-          "name": "Generate SQL Feature",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Feature generated', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "const response = pm.response.json();",
-                  "pm.test('Status is DRAFT', function () {",
-                  "    pm.expect(response.status).to.eql('DRAFT');",
-                  "});",
-                  "pm.test('Content not empty', function () {",
-                  "    pm.expect(response.content).to.not.be.empty;",
-                  "});",
-                  "pm.collectionVariables.set('featureId', response.id);",
-                  "console.log('Generated SQL:', response.content);",
-                  "console.log('Parameters:', JSON.stringify(response.parameters));",
-                  "console.log('Results:', JSON.stringify(response.results));"
-                ]
-              }
-            }
-          ],
+          "name": "1. Create Chat",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('chatId', pm.response.json().id);",
+            "console.log('chatId:', pm.response.json().id);"
+          ]}}],
           "request": {
             "method": "POST",
-            "url": {
-              "raw": "{{baseUrl}}/chats/{{chatId}}/features/generate?type=SQL",
-              "host": ["{{baseUrl}}"],
-              "path": ["chats", "{{chatId}}", "features", "generate"],
-              "query": [
-                {
-                  "key": "type",
-                  "value": "SQL"
-                }
-              ]
-            }
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"title\": \"SQL scenario {{$timestamp}}\"\n}"},
+            "url": {"raw": "{{baseUrl}}/chats", "host": ["{{baseUrl}}"], "path": ["chats"]}
           }
         },
         {
-          "name": "Execute Feature (no params)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Feature executed', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "const response = pm.response.json();",
-                  "pm.test('Status is EXECUTED or FAILED', function () {",
-                  "    pm.expect(['EXECUTED', 'FAILED']).to.include(response.status);",
-                  "});",
-                  "if (response.status === 'FAILED') {",
-                  "    console.error('Execution failed:', response.errorMessage);",
-                  "} else {",
-                  "    console.log('Executed successfully');",
-                  "}"
-                ]
-              }
-            }
-          ],
+          "name": "2. Send Message",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "console.log('LLM:', pm.response.json().content.slice(0,150));"
+          ]}}],
           "request": {
             "method": "POST",
-            "url": {
-              "raw": "{{baseUrl}}/chats/features/{{featureId}}/execute",
-              "host": ["{{baseUrl}}"],
-              "path": ["chats", "features", "{{featureId}}", "execute"]
-            }
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"content\": \"I need a table for storing products: id (bigserial pk), name (varchar), price (numeric 10,2), created_at (timestamp)\"\n}"},
+            "url": {"raw": "{{baseUrl}}/chats/{{chatId}}/messages", "host": ["{{baseUrl}}"], "path": ["chats","{{chatId}}","messages"]}
           }
         },
         {
-          "name": "Execute Feature (with params)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Feature executed', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "const response = pm.response.json();",
-                  "if (response.status === 'FAILED') {",
-                  "    console.error('Execution failed:', response.errorMessage);",
-                  "} else {",
-                  "    console.log('Executed successfully');",
-                  "}"
-                ]
-              }
-            }
-          ],
+          "name": "3. Generate SQL Feature",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const r = pm.response.json();",
+            "pm.test('DRAFT', () => pm.expect(r.status).to.eql('DRAFT'));",
+            "pm.test('SQL type', () => pm.expect(r.type).to.eql('SQL'));",
+            "pm.collectionVariables.set('featureId', r.id);",
+            "console.log('featureId:', r.id);",
+            "console.log('SQL:', r.content);"
+          ]}}],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "url": {"raw": "{{baseUrl}}/chats/{{chatId}}/features/generate?type=SQL", "host": ["{{baseUrl}}"], "path": ["chats","{{chatId}}","features","generate"], "query": [{"key": "type", "value": "SQL"}]}
+          }
+        },
+        {
+          "name": "4. Execute SQL Feature",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const r = pm.response.json();",
+            "pm.test('EXECUTED or FAILED', () => pm.expect(['EXECUTED','FAILED']).to.include(r.status));",
+            "if (r.status === 'FAILED') {",
+            "  console.error('FAILED:', r.errorMessage);",
+            "  console.log('→ Run step 5 (Retry)');",
+            "} else {",
+            "  console.log('Table created OK');",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/chats/features/{{featureId}}/execute", "host": ["{{baseUrl}}"], "path": ["chats","features","{{featureId}}","execute"]}
+          }
+        },
+        {
+          "name": "5. Retry (if FAILED) → back to DRAFT, then repeat step 4",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const r = pm.response.json();",
+            "pm.test('DRAFT', () => pm.expect(r.status).to.eql('DRAFT'));",
+            "console.log('Fixed SQL:', r.content);",
+            "console.log('→ Now run step 4 again');"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/chats/features/{{featureId}}/retry", "host": ["{{baseUrl}}"], "path": ["chats","features","{{featureId}}","retry"]}
+          }
+        },
+        {
+          "name": "ERR — Generate again while DRAFT exists (409)",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('409', () => pm.response.to.have.status(409));"]}}],
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/chats/{{chatId}}/features/generate?type=SQL", "host": ["{{baseUrl}}"], "path": ["chats","{{chatId}}","features","generate"], "query": [{"key": "type", "value": "SQL"}]}
+          }
+        },
+        {
+          "name": "ERR — Execute not found (404)",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('404', () => pm.response.to.have.status(404));"]}}],
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/chats/features/999999/execute", "host": ["{{baseUrl}}"], "path": ["chats","features","999999","execute"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Сценарий 2 — API + SQL (связанные фичи)",
+      "description": "Шаги:\n1. Создать таблицу (SQL-фича)\n2. Создать SELECT-фичу для чтения данных\n3. Создать API-фичу и слинковать с SELECT через sqlFeatureId\n4. Вызвать динамический эндпоинт — вернёт реальные данные из БД",
+      "item": [
+        {
+          "name": "1. Create Chat",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('chatId', pm.response.json().id);",
+            "console.log('chatId:', pm.response.json().id);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"title\": \"API+SQL scenario {{$timestamp}}\"\n}"},
+            "url": {"raw": "{{baseUrl}}/chats", "host": ["{{baseUrl}}"], "path": ["chats"]}
+          }
+        },
+        {
+          "name": "2. Send Message (describe task)",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "console.log('LLM:', pm.response.json().content.slice(0,150));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"content\": \"I need a products table (id bigserial pk, name varchar, price numeric 10,2) and a GET API endpoint to list all products\"\n}"},
+            "url": {"raw": "{{baseUrl}}/chats/{{chatId}}/messages", "host": ["{{baseUrl}}"], "path": ["chats","{{chatId}}","messages"]}
+          }
+        },
+        {
+          "name": "3. Generate SQL — CREATE TABLE",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const r = pm.response.json();",
+            "pm.test('DRAFT', () => pm.expect(r.status).to.eql('DRAFT'));",
+            "pm.collectionVariables.set('featureId', r.id);",
+            "console.log('CREATE TABLE featureId:', r.id);",
+            "console.log('SQL:', r.content);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/chats/{{chatId}}/features/generate?type=SQL", "host": ["{{baseUrl}}"], "path": ["chats","{{chatId}}","features","generate"], "query": [{"key": "type", "value": "SQL"}]}
+          }
+        },
+        {
+          "name": "4. Execute SQL — CREATE TABLE",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const r = pm.response.json();",
+            "if (r.status === 'FAILED') console.error('FAILED:', r.errorMessage);",
+            "else console.log('Table created OK');"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/chats/features/{{featureId}}/execute", "host": ["{{baseUrl}}"], "path": ["chats","features","{{featureId}}","execute"]}
+          }
+        },
+        {
+          "name": "5. Send Message (ask for SELECT query)",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "console.log('LLM:', pm.response.json().content.slice(0,150));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"content\": \"Now generate a SELECT query to get all products from that table\"\n}"},
+            "url": {"raw": "{{baseUrl}}/chats/{{chatId}}/messages", "host": ["{{baseUrl}}"], "path": ["chats","{{chatId}}","messages"]}
+          }
+        },
+        {
+          "name": "6. Generate SQL — SELECT",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const r = pm.response.json();",
+            "pm.test('DRAFT', () => pm.expect(r.status).to.eql('DRAFT'));",
+            "pm.collectionVariables.set('sqlSelectFeatureId', r.id);",
+            "pm.collectionVariables.set('featureId', r.id);",
+            "console.log('SELECT featureId:', r.id, '← запомни, подставишь в шаг 10');",
+            "console.log('SQL:', r.content);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/chats/{{chatId}}/features/generate?type=SQL", "host": ["{{baseUrl}}"], "path": ["chats","{{chatId}}","features","generate"], "query": [{"key": "type", "value": "SQL"}]}
+          }
+        },
+        {
+          "name": "7. Execute SQL — SELECT (saves to DB, no rows yet)",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "console.log('SELECT feature status:', pm.response.json().status);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/chats/features/{{featureId}}/execute", "host": ["{{baseUrl}}"], "path": ["chats","features","{{featureId}}","execute"]}
+          }
+        },
+        {
+          "name": "8. Send Message (ask for API endpoint)",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "console.log('LLM:', pm.response.json().content.slice(0,150));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"content\": \"Now describe a REST GET endpoint to expose the products list\"\n}"},
+            "url": {"raw": "{{baseUrl}}/chats/{{chatId}}/messages", "host": ["{{baseUrl}}"], "path": ["chats","{{chatId}}","messages"]}
+          }
+        },
+        {
+          "name": "9. Generate API Feature",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const r = pm.response.json();",
+            "pm.test('DRAFT', () => pm.expect(r.status).to.eql('DRAFT'));",
+            "pm.test('API type', () => pm.expect(r.type).to.eql('API'));",
+            "pm.collectionVariables.set('featureId', r.id);",
+            "console.log('API featureId:', r.id);",
+            "console.log('Endpoint:', r.content, '← запомни URL для шага 11');"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/chats/{{chatId}}/features/generate?type=API", "host": ["{{baseUrl}}"], "path": ["chats","{{chatId}}","features","generate"], "query": [{"key": "type", "value": "API"}]}
+          }
+        },
+        {
+          "name": "10. Execute API Feature (linked to SELECT) ⚠️ подставь sqlSelectFeatureId",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const r = pm.response.json();",
+            "pm.test('EXECUTED', () => pm.expect(r.status).to.eql('EXECUTED'));",
+            "console.log('Dynamic endpoint registered and linked to SQL SELECT');",
+            "console.log('Endpoint:', r.content);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id\": 1,\n  \"name\": \"Alice\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"sqlFeatureId\": {{sqlSelectFeatureId}}\n}",
+              "options": {"raw": {"language": "json"}}
             },
-            "url": {
-              "raw": "{{baseUrl}}/chats/features/{{featureId}}/execute",
-              "host": ["{{baseUrl}}"],
-              "path": ["chats", "features", "{{featureId}}", "execute"]
-            }
+            "url": {"raw": "{{baseUrl}}/chats/features/{{featureId}}/execute", "host": ["{{baseUrl}}"], "path": ["chats","features","{{featureId}}","execute"]}
           }
         },
         {
-          "name": "Execute Feature Not Found",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('404 returned', function () {",
-                  "    pm.response.to.have.status(404);",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "11. Call Dynamic GET /api/products ⚠️ подправь URL из шага 9",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const r = pm.response.json();",
+            "console.log('Dynamic API response (real DB data):', JSON.stringify(r));"
+          ]}}],
           "request": {
-            "method": "POST",
-            "url": {
-              "raw": "{{baseUrl}}/chats/features/999999/execute",
-              "host": ["{{baseUrl}}"],
-              "path": ["chats", "features", "999999", "execute"]
-            }
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/products", "host": ["{{baseUrl}}"], "path": ["api","products"]}
           }
         },
         {
-          "name": "Execute Feature Already Executed",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('400 returned for non-DRAFT feature', function () {",
-                  "    pm.response.to.have.status(400);",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "Retry API Feature (if FAILED)",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const r = pm.response.json();",
+            "pm.test('DRAFT', () => pm.expect(r.status).to.eql('DRAFT'));",
+            "console.log('Fixed content:', r.content);"
+          ]}}],
           "request": {
             "method": "POST",
-            "url": {
-              "raw": "{{baseUrl}}/chats/features/{{featureId}}/execute",
-              "host": ["{{baseUrl}}"],
-              "path": ["chats", "features", "{{featureId}}", "execute"]
-            }
+            "url": {"raw": "{{baseUrl}}/chats/features/{{featureId}}/retry", "host": ["{{baseUrl}}"], "path": ["chats","features","{{featureId}}","retry"]}
           }
         }
       ]

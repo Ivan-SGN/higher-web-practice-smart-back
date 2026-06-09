@@ -3,18 +3,16 @@ package ru.yandex.practicum.smart.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestTemplate;
 
 @Configuration
 public class RestClientConfig {
 
     @Bean
-    public RestClient restClient() {
+    public RestTemplate restTemplate() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(5000);
         factory.setReadTimeout(120000);
-        return RestClient.builder()
-                .requestFactory(factory)
-                .build();
+        return new RestTemplate(factory);
     }
 }

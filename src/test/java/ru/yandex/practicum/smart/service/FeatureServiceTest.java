@@ -15,6 +15,7 @@ import ru.yandex.practicum.smart.dto.GeneratedFeature;
 import ru.yandex.practicum.smart.exception.ConflictException;
 import ru.yandex.practicum.smart.exception.NotFoundException;
 import ru.yandex.practicum.smart.exception.ValidationException;
+import ru.yandex.practicum.smart.executor.ApiFeatureExecutor;
 import ru.yandex.practicum.smart.executor.SqlFeatureExecutor;
 import ru.yandex.practicum.smart.mapper.FeatureMapper;
 import ru.yandex.practicum.smart.mapper.MessageMapper;
@@ -37,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.isNull;
 
 @ExtendWith(MockitoExtension.class)
 class FeatureServiceTest {
@@ -50,6 +52,7 @@ class FeatureServiceTest {
     @Mock private LlmClient llmClient;
     @Mock private PromptProvider promptProvider;
     @Mock private SqlFeatureExecutor sqlFeatureExecutor;
+    @Mock private ApiFeatureExecutor apiFeatureExecutor;
 
     @InjectMocks
     private FeatureService featureService;
@@ -174,6 +177,19 @@ class FeatureServiceTest {
                 .isInstanceOf(NotFoundException.class);
     }
 
+    @Test
+    void executeApiFeatureHappyPathTest() {
+        Feature feature = createApiFeature(createChat(), FeatureStatus.DRAFT);
+        when(featureRepository.findById(1L)).thenReturn(Optional.of(feature));
+        when(featureRepository.save(any())).thenReturn(feature);
+        when(featureMapper.toDto(any())).thenReturn(createFeatureResponse(FeatureStatus.EXECUTED));
+
+        FeatureResponse result = featureService.execute(1L, Map.of());
+
+        assertThat(result.status()).isEqualTo(FeatureStatus.EXECUTED);
+        verify(apiFeatureExecutor).register(any(), isNull());
+    }
+
     private Chat createChat() {
         Chat chat = new Chat();
         chat.setId(1L);
@@ -188,6 +204,17 @@ class FeatureServiceTest {
         feature.setType(FeatureType.SQL);
         feature.setContent("CREATE TABLE users (id BIGSERIAL PRIMARY KEY)");
         feature.setStatus(status);
+        return feature;
+    }
+
+    private Feature createApiFeature(Chat chat, FeatureStatus status) {
+        Feature feature = new Feature();
+        feature.setId(1L);
+        feature.setChat(chat);
+        feature.setType(FeatureType.API);
+        feature.setContent("GET /api/users");
+        feature.setStatus(status);
+        feature.setResults(List.of("id", "login"));
         return feature;
     }
 

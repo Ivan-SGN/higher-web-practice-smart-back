@@ -24,5 +24,8 @@ CREATE TABLE IF NOT EXISTS features (
     parameters TEXT,
     results TEXT,
     error_message TEXT,
+    linked_feature_id BIGINT,
     created_at TIMESTAMP NOT NULL
 );
+
+ALTER TABLE features ADD COLUMN IF NOT EXISTS linked_feature_id BIGINT;

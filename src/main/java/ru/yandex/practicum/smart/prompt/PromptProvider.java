@@ -14,9 +14,13 @@ public class PromptProvider {
     @Value("classpath:prompts/sql_feature.txt")
     private Resource sqlPrompt;
 
+    @Value("classpath:prompts/api_feature.txt")
+    private Resource apiPrompt;
+
     public String getPrompt(FeatureType featureType) {
         return switch (featureType) {
             case SQL -> readPrompt(sqlPrompt);
+            case API -> readPrompt(apiPrompt);
         };
     }
 

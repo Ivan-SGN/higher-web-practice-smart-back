@@ -13,10 +13,12 @@ import ru.yandex.practicum.smart.dto.GeneratedFeature;
 import ru.yandex.practicum.smart.exception.ConflictException;
 import ru.yandex.practicum.smart.exception.NotFoundException;
 import ru.yandex.practicum.smart.exception.ValidationException;
+import ru.yandex.practicum.smart.executor.ApiFeatureExecutor;
 import ru.yandex.practicum.smart.executor.SqlFeatureExecutor;
 import ru.yandex.practicum.smart.mapper.FeatureMapper;
 import ru.yandex.practicum.smart.mapper.MessageMapper;
 import ru.yandex.practicum.smart.model.Chat;
+import ru.yandex.practicum.smart.model.enums.MessageRole;
 import ru.yandex.practicum.smart.model.Feature;
 import ru.yandex.practicum.smart.model.enums.FeatureStatus;
 import ru.yandex.practicum.smart.model.enums.FeatureType;
@@ -44,6 +46,7 @@ public class FeatureService {
     private final LlmClient llmClient;
     private final PromptProvider promptProvider;
     private final SqlFeatureExecutor sqlFeatureExecutor;
+    private final ApiFeatureExecutor apiFeatureExecutor;
 
     @Transactional
     public FeatureResponse generate(Long chatId, FeatureType featureType) {
@@ -98,16 +101,41 @@ public class FeatureService {
             throw new ValidationException("Only DRAFT features can be executed");
         }
         try {
-            sqlFeatureExecutor.execute(feature.getContent(), parameters);
+            switch (feature.getType()) {
+                case SQL -> sqlFeatureExecutor.execute(feature.getContent(), parameters);
+                case API -> {
+                    String sql = resolveSql(feature, parameters);
+                    apiFeatureExecutor.register(feature, sql);
+                }
+            }
             feature.setStatus(FeatureStatus.EXECUTED);
             feature.setErrorMessage(null);
-            log.info("Feature executed featureId={}", featureId);
+            log.info("Feature executed featureId={} type={}", featureId, feature.getType());
         } catch (DataAccessException e) {
+            feature.setStatus(FeatureStatus.FAILED);
+            feature.setErrorMessage(e.getMessage());
+            log.warn("Feature execution failed featureId={} error={}", featureId, e.getMessage());
+        } catch (Exception e) {
             feature.setStatus(FeatureStatus.FAILED);
             feature.setErrorMessage(e.getMessage());
             log.warn("Feature execution failed featureId={} error={}", featureId, e.getMessage());
         }
         return featureMapper.toDto(featureRepository.save(feature));
+    }
+
+    private String resolveSql(Feature apiFeature, Map<String, Object> parameters) {
+        if (parameters == null || !parameters.containsKey("sqlFeatureId")) {
+            return null;
+        }
+        Long sqlFeatureId = Long.parseLong(parameters.get("sqlFeatureId").toString());
+        Feature sqlFeature = getFeatureOrThrow(sqlFeatureId);
+        if (sqlFeature.getType() != FeatureType.SQL) {
+            log.warn("Linked feature is not SQL type featureId={}", sqlFeatureId);
+            throw new ValidationException("Linked feature must be of type SQL");
+        }
+        apiFeature.setLinkedFeatureId(sqlFeatureId);
+        log.info("API feature featureId={} linked to SQL featureId={}", apiFeature.getId(), sqlFeatureId);
+        return sqlFeature.getContent();
     }
 
     private Feature getFeatureOrThrow(Long featureId) {
@@ -143,6 +171,7 @@ public class FeatureService {
     private List<LlmMessage> getChatHistory(Long chatId) {
         return messageRepository.findAllByChatIdOrderByCreatedAtAsc(chatId)
                 .stream()
+                .filter(m -> m.getRole() == MessageRole.USER)
                 .map(messageMapper::toLlmMessage)
                 .toList();
     }
