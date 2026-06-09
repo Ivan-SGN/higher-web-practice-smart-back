@@ -93,7 +93,6 @@ public class FeatureService {
         return featureMapper.toDto(saved);
     }
 
-    @Transactional
     public FeatureResponse execute(Long featureId, Map<String, Object> parameters) {
         Feature feature = getFeatureOrThrow(featureId);
         if (feature.getStatus() != FeatureStatus.DRAFT) {

@@ -18,10 +18,10 @@ public class PromptProvider {
     private Resource apiPrompt;
 
     public String getPrompt(FeatureType featureType) {
-        return switch (featureType) {
-            case SQL -> readPrompt(sqlPrompt);
-            case API -> readPrompt(apiPrompt);
-        };
+        if (featureType == FeatureType.SQL) {
+            return readPrompt(sqlPrompt);
+        }
+        return readPrompt(apiPrompt);
     }
 
     @SneakyThrows

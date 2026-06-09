@@ -159,7 +159,7 @@
       ]
     },
     {
-      "name": "Сценарий 2 — API + SQL (связанные фичи)",
+      "name": "Сценарий 3 — API + SQL (связанные фичи)",
       "description": "Шаги:\n1. Создать таблицу (SQL-фича)\n2. Создать SELECT-фичу для чтения данных\n3. Создать API-фичу и слинковать с SELECT через sqlFeatureId\n4. Вызвать динамический эндпоинт — вернёт реальные данные из БД",
       "item": [
         {
@@ -287,7 +287,7 @@
           }
         },
         {
-          "name": "10. Execute API Feature (linked to SELECT) ⚠️ подставь sqlSelectFeatureId",
+          "name": "10. Execute API Feature (linked to SELECT) + сгенерированный sqlSelectFeatureId",
           "event": [{"listen": "test", "script": {"exec": [
             "pm.test('200', () => pm.response.to.have.status(200));",
             "const r = pm.response.json();",
@@ -307,7 +307,7 @@
           }
         },
         {
-          "name": "11. Call Dynamic GET /api/products ⚠️ подправь URL из шага 9",
+          "name": "11. Call Dynamic GET /api/products +сгенерированный URL из шага 9",
           "event": [{"listen": "test", "script": {"exec": [
             "pm.test('200', () => pm.response.to.have.status(200));",
             "const r = pm.response.json();",
