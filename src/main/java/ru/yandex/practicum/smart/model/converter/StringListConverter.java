@@ -1,0 +1,23 @@
+package ru.yandex.practicum.smart.model.converter;
+
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
+
+import java.util.Arrays;
+import java.util.List;
+
+@Converter
+public class StringListConverter implements AttributeConverter<List<String>, String> {
+
+    @Override
+    public String convertToDatabaseColumn(List<String> list) {
+        if (list == null || list.isEmpty()) return "";
+        return String.join(",", list);
+    }
+
+    @Override
+    public List<String> convertToEntityAttribute(String s) {
+        if (s == null || s.isBlank()) return List.of();
+        return Arrays.asList(s.split(","));
+    }
+}
